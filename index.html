@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        *{
+            margin:0px;
+            padding:0px;
+        }
+
+        #div1{
+            width:400px;
+            height:400px;
+            position:relative;
+            margin:20px auto;
+        }
+        .game0{
+            width:50px;
+            height:50px;
+            background:#666;
+            float:left;
+        }
+        .game1{
+            width:50px;
+            height:50px;
+            background:url(wall.png) no-repeat;
+            float:left;
+        }
+        .game2{
+            width:50px;
+            height:50px;
+            background:blue;
+            float:left;
+        }
+        .game3{
+            width:50px;
+            height:50px;
+            background:red;
+            float:left;
+        }
+        .box{
+            width:50px;
+            height:50px;
+            background:url(box.png) no-repeat;
+            position: absolute;
+        }
+        .wugui{
+            width:50px;
+            height:50px;
+            background:url(person.png) no-repeat;
+            position: absolute;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="div1"></div>
+ 
+    <script>
+        //首先，设置关卡    我们可能有很多关，所以可以是一个数组
+        //然后每一关都要有一个地图，地图我们分为以下几个部分：
+        /*
+        *   1、墙            假设是数字1
+        *   2、可移动区域    假设是数字2
+        *   3、目标点        3
+        *   4、箱子          4
+        *   5、小乌龟        5
+        *   6、墙外区域      0
+        * */
+        //第一关
+        var gk=[{
+            map:[
+                0,0,1,1,1,1,0,0,
+                0,0,1,3,3,1,0,0,
+                0,1,1,2,3,1,1,0,
+                0,1,2,2,2,3,1,0,
+                1,1,2,2,2,2,1,1,
+                1,2,2,1,2,2,2,1,
+                1,2,2,2,2,2,2,1,
+                1,1,1,1,1,1,1,1
+            ],
+            box:[
+                {x:5,y:4},
+                {x:4,y:5},
+                {x:5,y:6},
+                {x:6,y:6}
+            ],
+            wugui:{x:4,y:7}
+        }];
+
+        var wrap=document.getElementById("div1");
+        //第一关以及设计好，那么现在开始画出来
+        //记录乌龟现在的位置
+        var wuguix;
+        var wuguiy;     //为什么定义在这里？因为这是全局变量
+        var thisgk;
+        function createMap(x){      // x 第几关
+            thisgk=gk[x];
+            //创建地图
+            for(var i=0;i<thisgk.map.length;i++){
+                wrap.innerHTML += "<div class='game"+thisgk.map[i]+"'></div>";
+            }
+            //创建箱子
+            for(var j=0;j<thisgk.box.length;j++){
+                //计算 top  和  left 的位置
+                var top=(thisgk.box[j].y-1) * 50;
+                var left=(thisgk.box[j].x-1) * 50;
+                wrap.innerHTML += "<div class='box' style='top:"+top+"px;left:"+left+"px;'></div>";
+            }
+            //创建乌龟
+            var top=(thisgk.wugui.y-1) * 50;
+            var left=(thisgk.wugui.x-1) * 50;
+            wuguix=thisgk.wugui.x;
+            wuguiy=thisgk.wugui.y;
+            wrap.innerHTML += "<div class='wugui' style='top:"+top+"px;left:"+left+"px;'></div>";
+        }
+
+        createMap(0);       //创建第一关地图
+
+        //开始监听键盘事件
+        var wugui=document.getElementsByClassName("wugui")[0];
+        var boxs=document.getElementsByClassName("box");
+        document.onkeydown=function(e){
+            switch(e.keyCode){
+                case 37:        //左
+                    //变化姿态
+                    wugui.style.backgroundPosition="-150px 0";
+                    //移动位置
+                    run(-1,0);
+                    break;
+                case 38:        //上
+                    wugui.style.backgroundPosition="0 0";
+                    run(0,-1);
+                    break;
+                case 39:        //右
+                    wugui.style.backgroundPosition="-50px 0";
+                    run(1,0);
+                    break;
+                case 40:        //下
+                    wugui.style.backgroundPosition="-100px 0";
+                    run(0,1);
+                    break;
+            }
+        }
+
+        //要改变的x和y的值
+        function run(x,y){
+            //不能随意走啊，撞到南墙要知道回头
+            //console.log(  thisgk.map[(wuguiy-1 + y)*8 + wuguix - 1 + x]    );
+            if(  thisgk.map[(wuguiy-1 + y)*8 + wuguix - 1 + x] != 1  ){
+                wugui.style.left=parseInt( wugui.style.left) + x*50 + "px";
+                wugui.style.top=parseInt( wugui.style.top) + y*50 + "px";
+                //移动了，乌龟的位置也要跟着变化
+                wuguix=wuguix+x;
+                wuguiy=wuguiy+y;
+
+                //如果撞到的是箱子，就是另一种情况了
+                for(var i=0;i<boxs.length;i++){
+
+                    // 碰撞了箱子  并且 箱子前面不是墙,让箱子走
+                    if( pz(wugui,boxs[i]) &&  thisgk.map[(wuguiy-1 + y)*8 + wuguix - 1 + x] != 1  ){
+                        //console.log("a");
+                        boxs[i].style.left=parseInt( boxs[i].style.left) + x*50 + "px";
+                        boxs[i].style.top=parseInt( boxs[i].style.top) + y*50 + "px";
+						
+						//还得判断一次，如果箱子的前面还是箱子，那么还是不能动
+                        for(var j=0;j<boxs.length;j++){
+                            if(  pz( boxs[i],boxs[j])  &&  boxs[i]!=boxs[j]  ){
+                                //一切都还原，箱子还原，乌龟还原
+                                boxs[i].style.left=parseInt( boxs[i].style.left) - x*50 + "px";
+                                boxs[i].style.top=parseInt( boxs[i].style.top) - y*50 + "px";
+
+                                wugui.style.left=parseInt( wugui.style.left) - x*50 + "px";
+                                wugui.style.top=parseInt( wugui.style.top) - y*50 + "px";
+                                //移动了，乌龟的位置也要跟着变化
+                                wuguix=wuguix-x;
+                                wuguiy=wuguiy-y;
+                            }
+                        }
+                    }else if(pz( wugui,boxs[i] )  ){
+                        //碰撞了箱子，箱子后面是墙  那么还是不能动，原先动了的，现在要回退
+                        wugui.style.left=parseInt( wugui.style.left) - x*50 + "px";
+                        wugui.style.top=parseInt( wugui.style.top) - y*50 + "px";
+                        //移动了，乌龟的位置也要跟着变化
+                        wuguix=wuguix-x;
+                        wuguiy=wuguiy-y;
+                    }
+                }
+
+                //每次能移动，都要判断一下是否游戏结束
+                gameOver();
+            }
+
+
+        }
+
+        //判断游戏是否结束
+        var results=document.getElementsByClassName("game3");
+        function gameOver(){
+            var num=0;
+            //所有的目标点和箱子都重合(碰撞)，就意味着游戏结束
+            //因为我们做了重复判断，因此不需要再考虑箱子重叠
+            for(var i=0;i<results.length;i++){
+                for(var j=0;j<boxs.length;j++){
+                    if(  pz( results[i],boxs[j] ) ){
+                        num++;
+                    }
+                }
+            }
+            if( num==boxs.length ){
+                alert("恭喜过关，下一关");
+            }
+        }
+
+
+        //碰撞检测
+        function pz( obj1,obj2 ){
+            var L1 = obj1.offsetLeft;
+            var R1 = obj1.offsetLeft+obj1.offsetWidth;
+            var T1 = obj1.offsetTop;
+            var B1 = obj1.offsetTop+obj1.offsetHeight;
+
+            var L2 = obj2.offsetLeft;
+            var R2 = obj2.offsetLeft+obj2.offsetWidth;
+            var T2 = obj2.offsetTop;
+            var B2 = obj2.offsetTop+obj2.offsetHeight;
+
+            if(L1>=R2 || R1<= L2 || B1<=T2 || T1>=B2){
+                return false;
+            }else{
+                return true;
+            }
+        }
+    </script>
+</body>
+</html>
